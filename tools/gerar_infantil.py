@@ -106,7 +106,7 @@ def blocos(lista, nivel=0):
     return out
 
 # ---------------------------------------------------------------- tradução
-TRAD = os.environ.get('TRADUTOR') or ('claude' if os.environ.get('ANTHROPIC_API_KEY') else 'google')
+TRAD = os.environ.get('TRADUTOR') or ('claude' if os.environ.get('ANTHROPIC_API_KEY') else 'google')  # gratuitos: "argos" e "google"
 cache = {}
 if os.path.exists(CACHE_FILE):
     cache = json.load(open(CACHE_FILE, encoding='utf8'))
@@ -151,6 +151,32 @@ def t_google(textos):
         print('  Google Tradutor está bloqueando pedidos; o que faltar será feito na próxima execução.', file=sys.stderr)
     return res
 
+_argos = None
+def t_argos(textos):
+    """Tradutor gratuito e de código aberto (Argos Translate): roda no próprio servidor, sem limite de pedidos."""
+    global _argos
+    if _argos is None:
+        try:
+            import argostranslate.package as pk, argostranslate.translate as tr
+            pk.update_package_index()
+            alvo = next(p for p in pk.get_available_packages() if p.from_code == 'en' and p.to_code == 'pt')
+            pk.install_from_path(alvo.download())
+            _argos = tr
+            print('  Argos Translate pronto (en→pt)')
+        except Exception as e:
+            print('  Argos Translate indisponível:', repr(e)[:200], file=sys.stderr)
+            _argos = False
+    if not _argos:
+        return [None] * len(textos)
+    res = []
+    for s in textos:
+        try:
+            res.append(_argos.translate(s, 'en', 'pt'))
+        except Exception as e:
+            print('  Argos falhou num texto:', repr(e)[:120], file=sys.stderr)
+            res.append(None)
+    return res
+
 PROMPT = ('Você traduz lições da Escola Sabatina infantil (igreja adventista) do inglês para o português do Brasil. '
           'Use linguagem simples e carinhosa para crianças, mantenha os nomes bíblicos na forma usada na Bíblia em português '
           '(ex.: Genesis→Gênesis, Noah→Noé) e preserve números e perguntas. Responda SOMENTE com um array JSON de strings, '
@@ -188,6 +214,10 @@ def traduz(textos):
     if falta:
         if TRAD == 'teste':
             novos = ['[PT] ' + s for s in falta]
+        elif TRAD == 'argos':
+            novos = t_argos(falta)
+            if all(v is None for v in novos):  # Argos indisponível: tenta o Google
+                novos = t_google(falta)
         elif TRAD == 'claude':
             novos = t_claude(falta)
             if any(v is None for v in novos):  # o que o Claude não devolveu, tenta no Google
