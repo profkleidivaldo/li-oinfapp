@@ -19,16 +19,18 @@ concurrency:
 jobs:
   atualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
+      - name: Instalar tradutor gratuito (Argos Translate)
+        run: pip install argostranslate
+        continue-on-error: true
       - name: Buscar, traduzir e salvar as lições
+        timeout-minutes: 120
         env:
-          # Opcional: crie o segredo ANTHROPIC_API_KEY em Settings → Secrets → Actions
-          # para traduzir com o Claude (melhor para crianças). Sem ele usa o Google Tradutor gratuito.
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TRADUTOR: argos   # gratuito, roda aqui no GitHub; se falhar, tenta o Google Tradutor gratuito
         run: python tools/gerar_infantil.py auto
       - name: Salvar alterações
         if: always()   # salva o progresso mesmo se a etapa anterior parar no meio
