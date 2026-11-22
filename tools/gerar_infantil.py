@@ -53,7 +53,11 @@ def http(url, data=None, headers=None, tries=3, raw=False):
 # ---------------------------------------------------------------- limpeza do markdown da Adventech
 def limpa(md):
     """Texto simples a partir do markdown da API (remove estilos ^[..]({..}), links e ênfases)."""
-    s = md or ''
+    if isinstance(md, dict):
+        md = md.get('markdown') or md.get('text') or md.get('title') or ''
+    if not isinstance(md, str):
+        return ''
+    s = md
     for _ in range(3):  # estilos aninhados
         s = re.sub(r'\^\[([^\]]*)\]\(\{[^)]*\}\)', r'\1', s)
     s = re.sub(r'!\[[^\]]*\]\([^)]*\)', '', s)
@@ -67,7 +71,11 @@ def limpa(md):
 def blocos(lista, nivel=0):
     """Converte os blocos da API em blocos simples: p, h, li, img (excertos bíblicos são ignorados)."""
     out = []
-    for b in lista or []:
+    if not isinstance(lista, list):
+        return out
+    for b in lista:
+        if not isinstance(b, dict):
+            continue
         t = b.get('type')
         if t == 'paragraph':
             x = limpa(b.get('markdown'))
@@ -77,11 +85,14 @@ def blocos(lista, nivel=0):
             if x: out.append({'k': 'h', 'e': x})
         elif t == 'list':
             for it in b.get('items') or []:
+                if not isinstance(it, dict):
+                    continue
                 x = limpa(it.get('markdown'))
                 if x: out.append({'k': 'li', 'e': x})
                 out += blocos(it.get('nested'), nivel + 1)
         elif t == 'image':
-            if b.get('src'): out.append({'k': 'img', 'src': b['src'], 'e': limpa(b.get('caption'))})
+            if isinstance(b.get('src'), str) and b['src']:
+                out.append({'k': 'img', 'src': b['src'], 'e': limpa(b.get('caption'))})
         elif t in ('question', 'quote', 'blockquote', 'callout'):
             x = limpa(b.get('markdown') or b.get('text'))
             if x: out.append({'k': 'p', 'e': x})
@@ -171,6 +182,8 @@ def semana(rid, n):
     pasta = f'{IMG}/{rid}'
     dias, contador = [], 0
     for seg in j['segments']:
+        if not isinstance(seg, dict):
+            continue
         bl = blocos(seg.get('blocks'))
         if not bl: continue
         for b in bl:
@@ -221,12 +234,18 @@ def main():
                 print(f'{rid}: não encontrado (ignorado)'); continue
             sems = []
             for n in range(1, 15):
-                w = semana(rid, n)
-                if not w:
-                    if n == 1: break
+                try:
+                    w = semana(rid, n)
+                    if not w:
+                        if n == 1: break
+                        continue
+                    print(f'{rid}: semana {n} ({sum(len(d["b"]) for d in w["days"])} blocos)')
+                    sems.append(traduz_semana(w))
+                except Exception:
+                    import traceback
+                    print(f'{rid}: ERRO na semana {n} (pulada):', file=sys.stderr)
+                    traceback.print_exc()
                     continue
-                print(f'{rid}: semana {n} ({sum(len(d["b"]) for d in w["days"])} blocos)')
-                sems.append(traduz_semana(w))
                 json.dump(cache, open(CACHE_FILE, 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
             if not sems: continue
             nome, idade, emoji = NIVEIS.get(lv, (lv.upper(), '', '📖'))
