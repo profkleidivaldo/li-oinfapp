@@ -1,1 +1,64 @@
-{"items":[]}
+{
+ "items": [
+  {
+   "id": "2026-04-bg",
+   "q": "2026-04",
+   "lv": "bg",
+   "nivel": "Beginner",
+   "idade": "1 a 3 anos",
+   "emoji": "🐣",
+   "semanas": 13,
+   "file": "data/infantil/2026-04-bg.json"
+  },
+  {
+   "id": "2026-04-kd",
+   "q": "2026-04",
+   "lv": "kd",
+   "nivel": "Jardim",
+   "idade": "4 a 6 anos",
+   "emoji": "🌱",
+   "semanas": 13,
+   "file": "data/infantil/2026-04-kd.json"
+  },
+  {
+   "id": "2026-04-pr",
+   "q": "2026-04",
+   "lv": "pr",
+   "nivel": "Primários",
+   "idade": "7 a 9 anos",
+   "emoji": "⭐",
+   "semanas": 13,
+   "file": "data/infantil/2026-04-pr.json"
+  },
+  {
+   "id": "2027-01-bg",
+   "q": "2027-01",
+   "lv": "bg",
+   "nivel": "Beginner",
+   "idade": "1 a 3 anos",
+   "emoji": "🐣",
+   "semanas": 13,
+   "file": "data/infantil/2027-01-bg.json"
+  },
+  {
+   "id": "2027-01-kd",
+   "q": "2027-01",
+   "lv": "kd",
+   "nivel": "Jardim",
+   "idade": "4 a 6 anos",
+   "emoji": "🌱",
+   "semanas": 13,
+   "file": "data/infantil/2027-01-kd.json"
+  },
+  {
+   "id": "2027-01-pr",
+   "q": "2027-01",
+   "lv": "pr",
+   "nivel": "Primários",
+   "idade": "7 a 9 anos",
+   "emoji": "⭐",
+   "semanas": 13,
+   "file": "data/infantil/2027-01-pr.json"
+  }
+ ]
+}
