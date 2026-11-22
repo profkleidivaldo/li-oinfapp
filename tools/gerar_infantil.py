@@ -40,13 +40,19 @@ def http(url, data=None, headers=None, tries=3, raw=False):
             with urllib.request.urlopen(req, timeout=45) as r:
                 b = r.read()
                 return b if raw else json.loads(b.decode('utf8'))
+            wait = 2 * (i + 1)
         except urllib.error.HTTPError as e:
             if e.code in (404, 403, 410):
                 return None
             err = e
+            wait = int(os.environ.get('ESPERA_429', '20')) * (i + 1) if e.code == 429 else 2 * (i + 1)  # 429 = pedidos demais: espera mais
+        except ValueError:  # resposta não é JSON (ex.: página HTML de "não existe")
+            return None
         except Exception as e:
             err = e
-        time.sleep(2 * (i + 1))
+            wait = 2 * (i + 1)
+        if i < tries - 1:
+            time.sleep(wait)
     print('  falhou:', url, err, file=sys.stderr)
     return None
 
@@ -106,15 +112,43 @@ if os.path.exists(CACHE_FILE):
     cache = json.load(open(CACHE_FILE, encoding='utf8'))
 chave = lambda s: hashlib.sha1(s.encode('utf8')).hexdigest()[:16]
 
+SEP = '\n###\n'
+falhas_google = 0  # pedidos seguidos que falharam; com 3 desiste nesta execução (continua na próxima)
+
+def _g(q):
+    data = urllib.parse.urlencode({'client': 'gtx', 'sl': 'en', 'tl': 'pt', 'dt': 't', 'q': q}).encode()
+    j = http(os.environ.get('GOOGLE_URL', 'https://translate.googleapis.com/translate_a/single'), data=data,
+             headers={'Content-Type': 'application/x-www-form-urlencoded'}, tries=3)
+    time.sleep(float(os.environ.get('PAUSA_GOOGLE', '2')))
+    if not j: return None
+    return ''.join(seg[0] for seg in j[0] if seg and seg[0])
+
 def t_google(textos):
-    res = []
-    for s in textos:
-        data = urllib.parse.urlencode({'client': 'gtx', 'sl': 'en', 'tl': 'pt', 'dt': 't', 'q': s}).encode()
-        j = http('https://translate.googleapis.com/translate_a/single', data=data,
-                 headers={'Content-Type': 'application/x-www-form-urlencoded'})
-        if not j: res.append(None); continue
-        res.append(''.join(seg[0] for seg in j[0] if seg and seg[0]))
-        time.sleep(0.15)
+    """Agrupa vários textos por pedido (muito menos chance de bloqueio 429)."""
+    global falhas_google
+    res = [None] * len(textos)
+    i = 0
+    while i < len(textos) and falhas_google < 3:
+        lote, tam = [i], len(textos[i]); i += 1
+        while i < len(textos) and len(lote) < 8 and tam + len(textos[i]) < 1500:
+            lote.append(i); tam += len(textos[i]); i += 1
+        out = _g(SEP.join(textos[k] for k in lote))
+        if out is None:
+            falhas_google += 1; continue
+        falhas_google = 0
+        partes = [p.strip() for p in out.split('###')]
+        if len(partes) == len(lote):
+            for k, p in zip(lote, partes): res[k] = p
+        elif len(lote) == 1:
+            res[lote[0]] = out.strip()
+        else:  # o tradutor mexeu nos separadores: traduz um por um
+            for k in lote:
+                if falhas_google >= 3: break
+                o = _g(textos[k])
+                if o is None: falhas_google += 1
+                else: falhas_google = 0; res[k] = o.strip()
+    if falhas_google >= 3:
+        print('  Google Tradutor está bloqueando pedidos; o que faltar será feito na próxima execução.', file=sys.stderr)
     return res
 
 PROMPT = ('Você traduz lições da Escola Sabatina infantil (igreja adventista) do inglês para o português do Brasil. '
@@ -163,7 +197,12 @@ def traduz(textos):
             novos = t_google(falta)
         for s, v in zip(falta, novos):
             if v: cache[chave(s)] = v
-    return [cache.get(chave(s), s) for s in textos]  # sem tradução → mantém o inglês
+    global FALTOU
+    if any(chave(s) not in cache for s in textos): FALTOU = True
+    return [cache.get(chave(s), s) for s in textos]  # sem tradução → mantém o inglês (a semana é pulada, veja traduz_semana)
+
+FALTOU = False
+class Incompleta(Exception): pass
 
 # ---------------------------------------------------------------- semanas
 def baixa_img(url, pasta, nome):
@@ -204,7 +243,11 @@ def traduz_semana(w):
         for b in d['b']: add(b)
     # guarda o original em inglês e preenche o português
     orig = [(r.get('e') if 'e' in r else r.get('title') if r is w else r.get('t')) for r in refs]
+    global FALTOU
+    FALTOU = False
     pt = traduz(orig)
+    if FALTOU:
+        raise Incompleta()  # não salva semana com pedaços em inglês; o que já foi traduzido fica no cache
     for r, en, x in zip(refs, orig, pt):
         if r is w: r['title_en'], r['title'] = en, x
         elif 'k' in r: r['x'] = x           # bloco: e=inglês, x=português
@@ -241,6 +284,10 @@ def main():
                         continue
                     print(f'{rid}: semana {n} ({sum(len(d["b"]) for d in w["days"])} blocos)')
                     sems.append(traduz_semana(w))
+                except Incompleta:
+                    print(f'{rid}: semana {n} com tradução incompleta (fica para a próxima execução)', file=sys.stderr)
+                    json.dump(cache, open(CACHE_FILE, 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
+                    continue
                 except Exception:
                     import traceback
                     print(f'{rid}: ERRO na semana {n} (pulada):', file=sys.stderr)
