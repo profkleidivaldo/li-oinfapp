@@ -31,6 +31,7 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python tools/gerar_infantil.py auto
       - name: Salvar alterações
+        if: always()   # salva o progresso mesmo se a etapa anterior parar no meio
         run: |
           git config user.name "github-actions"; git config user.email "actions@github.com"
           git add -A
