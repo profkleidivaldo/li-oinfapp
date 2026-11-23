@@ -18,7 +18,7 @@ try:
 except ImportError:
     import fitz
 
-CFG = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fontes_pdf.json')
+CFG = os.environ.get('FONTES_PDF') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fontes_pdf.json')
 DIAS_EN = r'(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday|sabbath)'
 RE_LICAO = re.compile(r'^\s*(?:lesson|session|week|lição|licao)\s*(\d{1,2})\b[\s:.\-–—]*(.*)$', re.I | re.S)
 RE_DIA = re.compile(r'^\s*' + DIAS_EN + r'\b', re.I)
@@ -199,8 +199,14 @@ def salva_imagens(L, rid):
 
 def processa_nivel(lv, fontes, trimestre):
     rid = f'{trimestre}-{lv}'
-    lista = [(u, '') for u in fontes.get('pdfs', [])]
-    if fontes.get('pagina'): lista += achar_pdfs(fontes['pagina'])
+    explic, fixo = [(u, '') for u in fontes.get('pdfs', [])], {}
+    pad = fontes.get('padrao')
+    if pad:   # endereço com {ANO} {AA} {TRI} {NN}: um PDF por lição (os que não existirem são ignorados)
+        ano, tri = trimestre.split('-')
+        for n in range(int(fontes.get('de', 1)), int(fontes.get('ate', 13)) + 1):
+            u = pad.replace('{ANO}', ano).replace('{AA}', ano[2:]).replace('{TRI}', str(int(tri))).replace('{NN}', f'{n:02d}')
+            explic.append((u, '')); fixo[u] = n
+    lista = achar_pdfs(fontes['pagina']) if fontes.get('pagina') else []
     filtro = fontes.get('filtro')
     if filtro: lista = [(u, t) for u, t in lista if re.search(filtro, u + ' ' + t, re.I)]
     excl = fontes.get('excluir', EXCLUIR_PADRAO)   # por padrão, descarta material do PROFESSOR
@@ -208,7 +214,8 @@ def processa_nivel(lv, fontes, trimestre):
         fora = [(u, t) for u, t in lista if re.search(excl, u + ' ' + t, re.I)]
         lista = [(u, t) for u, t in lista if (u, t) not in fora]
         for u, t in fora: print('   × ignorado (parece material do professor):', t or '', u)
-    print(f'{rid}: {len(lista)} PDF(s) encontrados')
+    lista = explic + lista   # links informados à mão não passam pelo filtro de "professor"
+    print(f'{rid}: {len(lista)} PDF(s) para tentar')
     for u, t in lista[:60]: print('   ·', t or '(sem rótulo)', '→', u)
     if len(lista) > 40: print('   AVISO: muitos PDFs; use "filtro" em tools/fontes_pdf.json para ficar só com o trimestre atual.')
     semanas = {}
@@ -221,6 +228,9 @@ def processa_nivel(lv, fontes, trimestre):
             licoes = monta_licoes(itens_do_pdf(dados), int(n_nome[-1]) if n_nome and 1 <= int(n_nome[-1]) <= 14 else ordem)
         except Exception:
             import traceback; print(f'   ERRO lendo {u}:', file=sys.stderr); traceback.print_exc(); continue
+        if u in fixo and licoes:   # um PDF = uma lição: junta tudo na lição do número do arquivo
+            licoes = [{'n': fixo[u], 'title': next((L['title'] for L in licoes if L['title']), ''),
+                       'days': [D for L in licoes for D in L['days']]}]
         print(f'   {u.split("/")[-1][:50]}: {len(licoes)} lição(ões)')
         for L in licoes:
             if 1 <= L['n'] <= 14:
