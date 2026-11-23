@@ -1,6 +1,16 @@
 {
-  "_ajuda": "Cada nível aqui é lido de PDFs do ALUNO, um PDF por lição. 'padrao' = endereço do PDF com {ANO} (2026), {AA} (26), {TRI} (4) e {NN} (01 a 13); o script tenta de 'de' até 'ate' e ignora os que ainda não existem. 'pdfs' = links diretos extras. 'pagina' = (opcional) página da qual procurar links de PDF; links com 'teacher', 'TG', 'powerpoint'... são descartados. 'filtro' = regex para ficar só com certos links. 'trimestre' vazio = trimestre atual.",
+  "_ajuda": "Cada nível aqui é lido de PDFs do ALUNO. 'padrao' = endereço do PDF com {ANO} (2026), {AA} (26), {TRI} (4) e {NN} (01 a 13), um PDF por lição; o script tenta de 'de' até 'ate' e ignora os que não existem. 'pdfs' = links diretos (aceitam {ANO}, {AA}, {TRI}). 'pagina' = (opcional) página da qual procurar links de PDF; links com 'teacher', 'TG', 'powerpoint'... são descartados. 'filtro' = regex para ficar só com certos links. 'trimestre' vazio = trimestre atual. 'ativo': false desliga o nível. O log do GitHub mostra os PDFs encontrados e os ignorados.",
+  "bg": {
+    "ativo": true,
+    "pagina": "https://beginner.aliveinjesus.info/students?year=A&quarter=quarter{TRI}",
+    "pdfs": [
+      "https://sabbath-school-media-tmp.s3.us-east-1.amazonaws.com/pdf/en/{ANO}-0{TRI}/ABSG-{ANO}-0{TRI}-EN-BG-LittleDevotions.pdf"
+    ],
+    "filtro": "",
+    "trimestre": ""
+  },
   "jr": {
+    "ativo": true,
     "padrao": "https://www.juniorpowerpoints.org/assets/juniors/Lessons/{ANO}/Q{TRI}/English/Student/PP-{AA}-Q{TRI}-L{NN}.pdf",
     "de": 1,
     "ate": 13,
@@ -10,6 +20,7 @@
     "trimestre": ""
   },
   "tn": {
+    "ativo": true,
     "padrao": "https://www.realtimefaith.net/assets/earliteens/Lessons/{ANO}/Q{TRI}/English/Student/R-{AA}-Q{TRI}-{NN}.pdf",
     "de": 1,
     "ate": 13,
