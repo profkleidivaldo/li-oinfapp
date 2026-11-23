@@ -19,7 +19,7 @@ concurrency:
 jobs:
   atualizar:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 340
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,11 +27,19 @@ jobs:
       - name: Instalar tradutor gratuito (Argos Translate)
         run: pip install argostranslate
         continue-on-error: true
-      - name: Buscar, traduzir e salvar as lições
+      - name: Instalar leitor de PDF (PyMuPDF)
+        run: pip install pymupdf
+      - name: Buscar, traduzir e salvar as lições (Beginner, Jardim, Primários)
         timeout-minutes: 120
         env:
           TRADUTOR: argos   # gratuito, roda aqui no GitHub; se falhar, tenta o Google Tradutor gratuito
         run: python tools/gerar_infantil.py auto
+      - name: Extrair e traduzir as lições em PDF (Juniores e Teens)
+        timeout-minutes: 150
+        continue-on-error: true   # se o PDF falhar, as outras lições continuam sendo salvas
+        env:
+          TRADUTOR: argos
+        run: python tools/gerar_pdf.py auto
       - name: Salvar alterações
         if: always()   # salva o progresso mesmo se a etapa anterior parar no meio
         run: |
