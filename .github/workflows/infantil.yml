@@ -28,17 +28,22 @@ jobs:
         run: pip install argostranslate
         continue-on-error: true
       - name: Instalar leitor de PDF (PyMuPDF)
-        run: pip install pymupdf
+        run: pip install pymupdf pillow
       - name: Buscar, traduzir e salvar as lições (Beginner, Jardim, Primários)
         timeout-minutes: 120
         env:
-          TRADUTOR: argos   # gratuito, roda aqui no GitHub; se falhar, tenta o Google Tradutor gratuito
+          # Com chave de IA gratuita (Groq ou Gemini) usa a IA para organizar e traduzir; sem chave, usa o Argos (gratuito, roda aqui).
+          TRADUTOR: ${{ (secrets.GROQ_API_KEY != '' || secrets.GEMINI_API_KEY != '') && 'ia' || 'argos' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python tools/gerar_infantil.py auto
       - name: Extrair e traduzir as lições em PDF (Juniores e Teens)
         timeout-minutes: 150
         continue-on-error: true   # se o PDF falhar, as outras lições continuam sendo salvas
         env:
-          TRADUTOR: argos
+          TRADUTOR: ${{ (secrets.GROQ_API_KEY != '' || secrets.GEMINI_API_KEY != '') && 'ia' || 'argos' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python tools/gerar_pdf.py auto
       - name: Salvar alterações
         if: always()   # salva o progresso mesmo se a etapa anterior parar no meio
