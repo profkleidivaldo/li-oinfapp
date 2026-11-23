@@ -31,6 +31,26 @@
    "file": "data/infantil/2026-04-pr.json"
   },
   {
+   "id": "2026-04-jr",
+   "q": "2026-04",
+   "lv": "jr",
+   "nivel": "Juniores",
+   "idade": "10 a 12 anos",
+   "emoji": "🚀",
+   "semanas": 13,
+   "file": "data/infantil/2026-04-jr.json"
+  },
+  {
+   "id": "2026-04-tn",
+   "q": "2026-04",
+   "lv": "tn",
+   "nivel": "Teens",
+   "idade": "13 a 14 anos",
+   "emoji": "🎧",
+   "semanas": 13,
+   "file": "data/infantil/2026-04-tn.json"
+  },
+  {
    "id": "2027-01-bg",
    "q": "2027-01",
    "lv": "bg",
