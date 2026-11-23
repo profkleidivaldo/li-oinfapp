@@ -1,14 +1,20 @@
 {
-  "_ajuda": "Para cada nível: 'pagina' = página que lista os PDFs (o script acha os links sozinho); 'pdfs' = links diretos de PDF (opcional, se preferir colocar à mão); 'filtro' = texto/regex para ficar só com os PDFs certos (ex.: 'Q4|4Q|2026-04'); 'trimestre' = ex.: '2026-04' (vazio = trimestre atual).",
+  "_ajuda": "Cada nível aqui é lido de PDFs do ALUNO, um PDF por lição. 'padrao' = endereço do PDF com {ANO} (2026), {AA} (26), {TRI} (4) e {NN} (01 a 13); o script tenta de 'de' até 'ate' e ignora os que ainda não existem. 'pdfs' = links diretos extras. 'pagina' = (opcional) página da qual procurar links de PDF; links com 'teacher', 'TG', 'powerpoint'... são descartados. 'filtro' = regex para ficar só com certos links. 'trimestre' vazio = trimestre atual.",
   "jr": {
-    "pagina": "https://www.juniorpowerpoints.org/page2447",
+    "padrao": "https://www.juniorpowerpoints.org/assets/juniors/Lessons/{ANO}/Q{TRI}/English/Student/PP-{AA}-Q{TRI}-L{NN}.pdf",
+    "de": 1,
+    "ate": 13,
     "pdfs": [],
+    "pagina": "",
     "filtro": "",
     "trimestre": ""
   },
   "tn": {
-    "pagina": "https://www.realtimefaith.net/page2566",
+    "padrao": "https://www.realtimefaith.net/assets/earliteens/Lessons/{ANO}/Q{TRI}/English/Student/R-{AA}-Q{TRI}-{NN}.pdf",
+    "de": 1,
+    "ate": 13,
     "pdfs": [],
+    "pagina": "",
     "filtro": "",
     "trimestre": ""
   }
