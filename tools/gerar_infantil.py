@@ -28,7 +28,8 @@ NIVEIS = {
     'bg': ('Beginner', '1 a 3 anos', '🐣'),
     'kd': ('Jardim', '4 a 6 anos', '🌱'),
     'pr': ('Primários', '7 a 9 anos', '⭐'),
-    'jr': ('Juniores', '10 a 12 anos', '🚀'),
+    'jr': ('Juniores', '10 a 12 anos', '🚀'),   # só existe em PDF: veja tools/gerar_pdf.py
+    'tn': ('Teens', '13 a 14 anos', '🎧'),       # só existe em PDF: veja tools/gerar_pdf.py
 }
 
 # ---------------------------------------------------------------- rede
@@ -326,7 +327,8 @@ def main():
                 json.dump(cache, open(CACHE_FILE, 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
             if not sems: continue
             nome, idade, emoji = NIVEIS.get(lv, (lv.upper(), '', '📖'))
-            doc = {'id': rid, 'q': q, 'lv': lv, 'nivel': nome, 'idade': idade, 'emoji': emoji, 'weeks': sems,
+            doc = {'id': rid, 'q': q, 'lv': lv, 'nivel': nome, 'idade': idade, 'emoji': emoji,
+                   'modo': 'slides' if lv == 'bg' else 'dias', 'weeks': sems,
                    'gerado': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')}
             json.dump(doc, open(f'{OUT}/{rid}.json', 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
             itens[rid] = {'id': rid, 'q': q, 'lv': lv, 'nivel': nome, 'idade': idade, 'emoji': emoji,
