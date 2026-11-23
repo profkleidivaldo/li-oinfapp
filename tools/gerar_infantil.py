@@ -350,8 +350,13 @@ def main():
                           'semanas': len(sems), 'file': f'data/infantil/{rid}.json'}
     # níveis desligados: tira do índice e apaga os arquivos já gerados (dados e imagens)
     import glob, shutil
+    try:  # níveis lidos de PDF (tools/fontes_pdf.json) não devem ser apagados aqui
+        cfg_pdf = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fontes_pdf.json'), encoding='utf8'))
+        por_pdf = {k for k, v in cfg_pdf.items() if not k.startswith('_') and v.get('ativo', True)}
+    except Exception:
+        por_pdf = set()
     for lv, ligado in ATIVOS.items():
-        if ligado: continue
+        if ligado or lv in por_pdf: continue
         for k in [k for k, v in itens.items() if v['lv'] == lv]:
             del itens[k]
         for f in glob.glob(f'{OUT}/*-{lv}.json'):
