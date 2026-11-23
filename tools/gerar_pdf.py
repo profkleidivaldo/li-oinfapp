@@ -199,14 +199,15 @@ def salva_imagens(L, rid):
 
 def processa_nivel(lv, fontes, trimestre):
     rid = f'{trimestre}-{lv}'
-    explic, fixo = [(u, '') for u in fontes.get('pdfs', [])], {}
+    ano, tri = trimestre.split('-')
+    subst = lambda s: s.replace('{ANO}', ano).replace('{AA}', ano[2:]).replace('{TRI}', str(int(tri)))
+    explic, fixo = [(subst(u), '') for u in fontes.get('pdfs', [])], {}
     pad = fontes.get('padrao')
     if pad:   # endereço com {ANO} {AA} {TRI} {NN}: um PDF por lição (os que não existirem são ignorados)
-        ano, tri = trimestre.split('-')
         for n in range(int(fontes.get('de', 1)), int(fontes.get('ate', 13)) + 1):
-            u = pad.replace('{ANO}', ano).replace('{AA}', ano[2:]).replace('{TRI}', str(int(tri))).replace('{NN}', f'{n:02d}')
+            u = subst(pad).replace('{NN}', f'{n:02d}')
             explic.append((u, '')); fixo[u] = n
-    lista = achar_pdfs(fontes['pagina']) if fontes.get('pagina') else []
+    lista = achar_pdfs(subst(fontes['pagina'])) if fontes.get('pagina') else []
     filtro = fontes.get('filtro')
     if filtro: lista = [(u, t) for u, t in lista if re.search(filtro, u + ' ' + t, re.I)]
     excl = fontes.get('excluir', EXCLUIR_PADRAO)   # por padrão, descarta material do PROFESSOR
@@ -276,8 +277,8 @@ def main():
     print(f'tradutor: {G.TRAD}')
     for lv, f in cfg.items():
         if lv.startswith('_') or (so and lv not in so): continue
-        if not G.ATIVOS.get(lv, False):
-            print(f'{lv}: desligado em tools/niveis_ativos.json (ignorado)'); continue
+        if not f.get('ativo', True):
+            print(f'{lv}: "ativo": false em tools/fontes_pdf.json (ignorado)'); continue
         try:
             processa_nivel(lv, f, f.get('trimestre') or G.trimestres(None)[0])
         except Exception:
