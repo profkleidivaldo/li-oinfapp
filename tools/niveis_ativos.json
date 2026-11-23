@@ -1,0 +1,8 @@
+{
+  "_ajuda": "true = o nível é baixado e aparece no app. false = não é baixado e é REMOVIDO do app e do repositório na próxima execução. Beginner, Juniores e Teens estão desligados porque o que foi baixado antes era o material do PROFESSOR. Ligue (true) quando a fonte do material do ALUNO estiver configurada.",
+  "bg": false,
+  "kd": true,
+  "pr": true,
+  "jr": false,
+  "tn": false
+}
