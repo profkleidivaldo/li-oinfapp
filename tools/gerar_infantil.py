@@ -16,6 +16,10 @@ Variáveis de ambiente (opcionais):
   TRADUTOR            "google" | "claude" | "teste" (teste = não traduz de verdade; só para testar)
 """
 import datetime, hashlib, json, os, re, sys, time, urllib.parse, urllib.request, urllib.error
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ia   # IA gratuita (Groq ou Gemini) para organizar e traduzir; só age se houver chave configurada
+# níveis cujo texto vem de PDF/extração e por isso é organizado pela IA (os de API já vêm estruturados)
+ORG_NIVEIS = {x.strip() for x in os.environ.get('ORGANIZAR_NIVEIS', 'bg,jr,tn').split(',') if x.strip()}
 
 API = os.environ.get('API_BASE', 'https://sabbath-school.adventech.io/api/v3/en/aij').rstrip('/')
 OUT = 'data/infantil'
@@ -119,7 +123,7 @@ def blocos(lista, nivel=0):
     return out
 
 # ---------------------------------------------------------------- tradução
-TRAD = os.environ.get('TRADUTOR') or ('claude' if os.environ.get('ANTHROPIC_API_KEY') else 'google')  # gratuitos: "argos" e "google"
+TRAD = os.environ.get('TRADUTOR') or ('ia' if ia.ATIVA else 'claude' if os.environ.get('ANTHROPIC_API_KEY') else 'google')  # gratuitos: "ia" (Groq/Gemini), "argos", "google"
 cache = {}
 if os.path.exists(CACHE_FILE):
     cache = json.load(open(CACHE_FILE, encoding='utf8'))
@@ -219,6 +223,27 @@ def t_claude(textos):
     if lote: envia(lote)
     return res
 
+PROMPT_IA = ('Você traduz lições da Escola Sabatina infantil (igreja adventista) do inglês para o português do Brasil. '
+             'Use linguagem simples e carinhosa para crianças, mantenha os nomes bíblicos na forma usada na Bíblia em português '
+             '(ex.: Genesis→Gênesis, Noah→Noé), preserve números, perguntas e emojis. Você recebe um array JSON de textos e responde '
+             'SOMENTE com um objeto JSON {"traducoes": [...]} com as traduções na mesma ordem e quantidade.')
+
+def t_ia(textos):
+    """Tradução com IA gratuita (Groq gpt-oss ou Gemini), em lotes pequenos por causa dos limites do plano grátis."""
+    res = [None] * len(textos)
+    def envia(idx):
+        j = ia.gera([{'text': json.dumps([textos[i] for i in idx], ensure_ascii=False)}], PROMPT_IA)
+        lista = j.get('traducoes') if isinstance(j, dict) else j
+        if isinstance(lista, list) and len(lista) == len(idx):
+            for i, v in zip(idx, lista): res[i] = str(v).strip()
+    lote, tam = [], 0
+    for i, s in enumerate(textos):
+        lote.append(i); tam += len(s)
+        if tam > 3500 or len(lote) >= 25:
+            envia(lote); lote, tam = [], 0
+    if lote: envia(lote)
+    return res
+
 def traduz(textos):
     """Traduz uma lista de textos usando cache; devolve lista na mesma ordem."""
     falta = []
@@ -227,6 +252,13 @@ def traduz(textos):
     if falta:
         if TRAD == 'teste':
             novos = ['[PT] ' + s for s in falta]
+        elif TRAD in ('ia', 'gemini', 'groq'):
+            novos = t_ia(falta)
+            faltam = [i for i, v in enumerate(novos) if v is None]
+            if faltam:   # o que a IA não traduziu (cota/erro): tenta o Argos e, por último, o Google
+                sub = t_argos([falta[i] for i in faltam])
+                if all(v is None for v in sub): sub = t_google([falta[i] for i in faltam])
+                for i, v in zip(faltam, sub): novos[i] = v
         elif TRAD == 'argos':
             novos = t_argos(falta)
             if all(v is None for v in novos):  # Argos indisponível: tenta o Google
@@ -329,6 +361,7 @@ def main():
                         if n == 1: break
                         continue
                     print(f'{rid}: semana {n} ({sum(len(d["b"]) for d in w["days"])} blocos)')
+                    if lv in ORG_NIVEIS: ia.organiza_semana(w)
                     sems.append(traduz_semana(w))
                 except Incompleta:
                     print(f'{rid}: semana {n} com tradução incompleta (fica para a próxima execução)', file=sys.stderr)
