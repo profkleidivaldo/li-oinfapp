@@ -23,6 +23,8 @@ DIAS_EN = r'(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday|sabbath)
 RE_LICAO = re.compile(r'^\s*(?:lesson|session|week|lição|licao)\s*(\d{1,2})\b[\s:.\-–—]*(.*)$', re.I | re.S)
 RE_DIA = re.compile(r'^\s*' + DIAS_EN + r'\b', re.I)
 BULLETS = '•·▪●◦-–—*'
+# PDFs com estas palavras no endereço ou no rótulo são do professor e são descartados
+EXCLUIR_PADRAO = r'teacher|professor|(?:^|[-_/ ])tg(?:[-_. ]|$)|leader|powerpoint|\.pptx?\b|lesson[- ]?plan|guide for|kit\b'
 
 # ------------------------------------------------------------------ achar os PDFs na página
 class Links(html.parser.HTMLParser):
@@ -201,6 +203,11 @@ def processa_nivel(lv, fontes, trimestre):
     if fontes.get('pagina'): lista += achar_pdfs(fontes['pagina'])
     filtro = fontes.get('filtro')
     if filtro: lista = [(u, t) for u, t in lista if re.search(filtro, u + ' ' + t, re.I)]
+    excl = fontes.get('excluir', EXCLUIR_PADRAO)   # por padrão, descarta material do PROFESSOR
+    if excl:
+        fora = [(u, t) for u, t in lista if re.search(excl, u + ' ' + t, re.I)]
+        lista = [(u, t) for u, t in lista if (u, t) not in fora]
+        for u, t in fora: print('   × ignorado (parece material do professor):', t or '', u)
     print(f'{rid}: {len(lista)} PDF(s) encontrados')
     for u, t in lista[:60]: print('   ·', t or '(sem rótulo)', '→', u)
     if len(lista) > 40: print('   AVISO: muitos PDFs; use "filtro" em tools/fontes_pdf.json para ficar só com o trimestre atual.')
@@ -259,6 +266,8 @@ def main():
     print(f'tradutor: {G.TRAD}')
     for lv, f in cfg.items():
         if lv.startswith('_') or (so and lv not in so): continue
+        if not G.ATIVOS.get(lv, False):
+            print(f'{lv}: desligado em tools/niveis_ativos.json (ignorado)'); continue
         try:
             processa_nivel(lv, f, f.get('trimestre') or G.trimestres(None)[0])
         except Exception:
