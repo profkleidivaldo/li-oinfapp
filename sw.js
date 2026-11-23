@@ -2,7 +2,7 @@
    - Páginas e ícones: guardados na instalação.
    - Dados (data/): rede primeiro (pega lições novas); sem internet usa a cópia guardada.
    - Imagens: guardadas na primeira vez que aparecem. */
-const SHELL = "kids-shell-v1";
+const SHELL = "kids-shell-v2";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./config.js", "./icon.svg",
   "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png", "./icon-maskable-512.png", "./data/infantil/index.json"];
 
