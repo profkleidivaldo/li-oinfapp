@@ -243,6 +243,7 @@ def processa_nivel(lv, fontes, trimestre):
         salva_imagens(L, rid)
         w = {'n': n, 'title': L['title'], 'start': '', 'end': '', 'days': [{'t': D['t'], 'd': '', 'b': D['b']} for D in L['days']]}
         try:
+            if lv in G.ORG_NIVEIS: G.ia.organiza_semana(w)   # IA reorganiza texto e figuras do dia (se houver chave)
             sems.append(G.traduz_semana(w)); print(f'{rid}: lição {n} ok ({sum(len(D["b"]) for D in w["days"])} blocos)')
         except G.Incompleta:
             print(f'{rid}: lição {n} com tradução incompleta (fica para a próxima execução)', file=sys.stderr)
