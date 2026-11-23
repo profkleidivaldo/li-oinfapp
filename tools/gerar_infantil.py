@@ -32,6 +32,18 @@ NIVEIS = {
     'tn': ('Teens', '13 a 14 anos', '🎧'),       # só existe em PDF: veja tools/gerar_pdf.py
 }
 
+def niveis_ativos():
+    """Lê tools/niveis_ativos.json (quais níveis baixar/mostrar)."""
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'niveis_ativos.json')
+    ativos = {'bg': False, 'kd': True, 'pr': True, 'jr': False, 'tn': False}
+    try:
+        ativos.update({k: bool(v) for k, v in json.load(open(p, encoding='utf8')).items() if not k.startswith('_')})
+    except Exception:
+        pass
+    return ativos
+
+ATIVOS = niveis_ativos()
+
 # ---------------------------------------------------------------- rede
 def http(url, data=None, headers=None, tries=3, raw=False):
     h = dict(UA); h.update(headers or {})
@@ -296,6 +308,9 @@ def trimestres(arg):
 def main():
     arg = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] != 'auto' else None
     niveis = sys.argv[2].split(',') if len(sys.argv) > 2 else list(NIVEIS)
+    desligados = [n for n in niveis if not ATIVOS.get(n, True)]
+    niveis = [n for n in niveis if ATIVOS.get(n, True)]
+    if desligados: print('níveis desligados em tools/niveis_ativos.json (ignorados):', ', '.join(desligados))
     os.makedirs(OUT, exist_ok=True)
     idx_path = f'{OUT}/index.json'
     idx = json.load(open(idx_path, encoding='utf8')) if os.path.exists(idx_path) else {'items': []}
@@ -333,6 +348,16 @@ def main():
             json.dump(doc, open(f'{OUT}/{rid}.json', 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
             itens[rid] = {'id': rid, 'q': q, 'lv': lv, 'nivel': nome, 'idade': idade, 'emoji': emoji,
                           'semanas': len(sems), 'file': f'data/infantil/{rid}.json'}
+    # níveis desligados: tira do índice e apaga os arquivos já gerados (dados e imagens)
+    import glob, shutil
+    for lv, ligado in ATIVOS.items():
+        if ligado: continue
+        for k in [k for k, v in itens.items() if v['lv'] == lv]:
+            del itens[k]
+        for f in glob.glob(f'{OUT}/*-{lv}.json'):
+            os.remove(f); print('removido:', f)
+        for d in glob.glob(f'{IMG}/*-{lv}'):
+            shutil.rmtree(d, ignore_errors=True); print('removido:', d)
     ordem = sorted(itens.values(), key=lambda i: (i['q'], list(NIVEIS).index(i['lv']) if i['lv'] in NIVEIS else 9))
     json.dump({'items': ordem}, open(idx_path, 'w', encoding='utf8'), ensure_ascii=False, indent=1)
     print('índice atualizado:', len(ordem), 'níveis/trimestres')
